@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flex-bin"
+version = "0.1.0"
+description = "Prebuilt GNU flex binaries packaged for Python"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{name = "flex-bin maintainers"}]
+license = "BSD-3-Clause"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Utilities",
+]
+keywords = ["flex", "lex", "scanner", "codegen", "binary"]
+
+[project.urls]
+Homepage = "https://github.com/trim21/flex-bin"
+Source = "https://github.com/trim21/flex-bin"
+Issues = "https://github.com/trim21/flex-bin/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.cibuildwheel]
+build = ["cp39-*", "cp310-*", "cp311-*", "cp312-*"]
+skip = ["*-musllinux_*"]
+environment = {FLEX_VERSION = "2.6.4"}
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+environment = {MACOSX_DEPLOYMENT_TARGET = "11.0", FLEX_VERSION = "2.6.4"}
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64", "aarch64"]
+environment = {FLEX_VERSION = "2.6.4"}
