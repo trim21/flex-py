@@ -1,0 +1,10 @@
+version: 3
+
+tasks:
+  test:
+    cmds:
+      - rm dist -rf
+      - uv build --sdist .
+      - uv build --wheel dist/flex_bin-2.6.4.0.tar.gz
+      - rm dist -rf
+      - uv build --wheel .

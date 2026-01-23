@@ -1,0 +1,81 @@
+name: Build Python Wheels
+
+on:
+  workflow_call:
+
+jobs:
+  sdist:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build
+        run: python -m pip install --upgrade pip build
+
+      - name: Build sdist
+        run: python -m build --sdist --outdir dist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist/*
+
+  wheel:
+    runs-on: ${{ matrix.platform.runner }}
+    needs: [sdist]
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - runner: macos-15
+          - runner: macos-15-intel
+          - runner: ubuntu-24.04
+          - runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download sdist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist
+
+      - name: Extract sdist
+        run: |
+          mkdir -p sdist
+          tar -xzf dist/*.tar.gz -C sdist --strip-components=1
+          ls -ahl sdist
+
+      - name: Install the latest version of uv
+        if: ${{ runner.os != 'Linux' }}
+        uses: astral-sh/setup-uv@v7
+
+      - uses: pypa/cibuildwheel@v3.3.1
+        env:
+          CIBW_ARCHS: 'native'
+        with:
+          package-dir: sdist
+
+      - run: ls -ahl wheelhouse
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ runner.os }}-${{ runner.arch }}
+          path: wheelhouse/*
+
+  merge-wheel-artifact:
+    runs-on: ubuntu-slim
+    needs: ['sdist', 'wheel']
+    steps:
+      - name: Merge Artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: wheel
+          pattern: wheels-*

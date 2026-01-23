@@ -1,0 +1,59 @@
+[build-system]
+requires = ["pdm-backend", "requests"]
+build-backend = "pdm.backend"
+
+[project]
+name = "flex-bin"
+version = "2.6.4.0"
+description = "Prebuilt GNU flex binaries packaged for Python"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "flex-bin maintainers" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS :: MacOS X",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Code Generators",
+]
+keywords = ["flex", "lex", "scanner", "codegen", "binary"]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/trim21/flex-py"
+Source = "https://github.com/trim21/flex-py"
+Issues = "https://github.com/trim21/flex-py/issues"
+
+[tool.pdm.build]
+is-purelib = false
+source-includes = ["pdm_build.py", "flex-*.tar.gz"]
+includes = ["LICENSE"]
+excludes = [
+  "build/**",
+  "dist/**",
+  "wheelhouse/**",
+  "temp.*",
+  "temp.*/**",
+  ".venv/**",
+  ".ruff_cache/**",
+  "gnu_flex/",
+  ".gitignore",
+]
+
+[tool.pdm.build.wheel-data]
+scripts = ["${BUILD_DIR}/gnu_flex/bin/*"]
+
+[tool.cibuildwheel]
+build-frontend = "build[uv]"
+test-command = "flex --version"
+skip = ["*-musllinux_*"]
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
