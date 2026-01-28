@@ -49,11 +49,7 @@ scripts = ["${BUILD_DIR}/gnu_flex/bin/*"]
 [tool.cibuildwheel]
 build-frontend = "build[uv]"
 test-command = "flex --version"
-skip = ["*-musllinux_*"]
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
 environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
-
-[tool.cibuildwheel.linux]
-archs = ["x86_64"]
