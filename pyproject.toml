@@ -51,5 +51,4 @@ build-frontend = "build[uv]"
 test-command = "flex --version"
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64", "arm64"]
 environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
