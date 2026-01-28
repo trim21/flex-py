@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import shlex
 import shutil
@@ -83,7 +81,7 @@ def build_flex(tarball_path: Path, output: Path) -> None:
         output.chmod(0o755)
 
 
-def _run_cmd(cmd: list[str], *, cwd: Path, env: dict[str, str]) -> None:
+def _run_cmd(cmd: list[str], *, cwd: Path, env: "dict[str, str]") -> None:
     print("run: ", shlex.join(cmd))
     subprocess.check_call(cmd, cwd=cwd, env=env)
 
