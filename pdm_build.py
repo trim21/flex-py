@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import platform
 import shlex
@@ -12,16 +14,29 @@ from typing import Any
 import requests
 from pdm.backend.hooks import Context
 
+NAME = "flex"
+VERSION = "2.6.4"
+TARBALL_URL = (
+    f"https://github.com/westes/flex/releases/download/v{VERSION}/flex-{VERSION}.tar.gz"
+)
+TARBALL_NAME = f"{NAME}-{VERSION}.tar.gz"
 
-FLEX_VERSION = "2.6.4"
-FLEX_TARBALL_URL = f"https://github.com/westes/flex/releases/download/v{FLEX_VERSION}/flex-{FLEX_VERSION}.tar.gz"
-FLEX_TARBALL_NAME = f"flex-{FLEX_VERSION}.tar.gz"
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).parent
+SRC_ROOT = PROJECT_ROOT.joinpath("src")
+VENDORED_TARBALL = SRC_ROOT.joinpath(TARBALL_NAME)
+
+TARGET_PREFIX = "gnu_flex/bin"
+CONFIG_ARGS = [
+    "CFLAGS=-D_GNU_SOURCE",
+    "--disable-nls",
+    "--disable-shared",
+    "--enable-static",
+]
 
 
 def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
-    print("[flex-bin]: getting targets for {!r}".format(arch), file=sys.stderr)
-    print("[flex-bin]: uname {!r}".format(platform.uname()), file=sys.stderr)
+    print("[bison-bin]: getting targets for {!r}".format(arch), file=sys.stderr)
+    print("[bison-bin]: uname {!r}".format(platform.uname()), file=sys.stderr)
 
     if arch in {"x86_64", "amd64"}:
         return "x86_64-linux-musl", "x86_64"
@@ -74,13 +89,17 @@ def pdm_build_hook_enabled(context: "Context"):
     return True
 
 
+def pdm_build_finalize(context: Context, artifact: Path) -> None:
+    pass
+
+
 def pdm_build_initialize(context: Context) -> None:
     try:
         shutil.rmtree(context.build_dir)
     except FileNotFoundError:
         pass
-    build_dir = context.ensure_build_dir()
 
+    build_dir = context.ensure_build_dir()
     tarball_path = _ensure_tarball(build_dir)
 
     if context.target == "sdist":
@@ -98,56 +117,41 @@ def pdm_build_initialize(context: Context) -> None:
 
     context.builder.config_settings = config_settings
 
-    output_path = build_dir / "gnu_flex" / "bin" / "flex"
+    output_path = build_dir.joinpath(TARGET_PREFIX)
 
-    build_flex(tarball_path, output_path)
-
-
-def pdm_build_finalize(context: "Context", artifact: Path) -> None:
-    pass
-    # if context.build_dir.exists():
-    #     shutil.rmtree(context.build_dir)
+    build_tar(tarball_path, output_path)
 
 
-def build_flex(tarball_path: Path, output: Path) -> None:
-    output.parent.mkdir(parents=True, exist_ok=True)
-
+def build_tar(
+    tarball_path: Path,
+    output: Path,
+):
     env = os.environ.copy()
 
     if sys.platform == "linux":
         if ZIG_TARGET is not None:
             env["CC"] = f"python-zig cc -target {ZIG_TARGET}"
 
-    with TemporaryDirectory(prefix="flex-build-") as temp_dir:
+    with TemporaryDirectory(prefix=f"{NAME}-build-") as temp_dir:
         work_dir = Path(temp_dir)
-        build_temp = work_dir / "build"
-        build_temp.mkdir(parents=True, exist_ok=True)
+        src_root = work_dir / "build"
+        src_root.mkdir(parents=True, exist_ok=True)
 
-        src_dir = _resolve_source(tarball_path, build_temp)
-        stage_dir = work_dir / "flex-stage"
+        _resolve_source(tarball_path, src_root)
+        stage_dir = work_dir / "stage"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
-        configure_cmd = [
-            "./configure",
-            "CFLAGS=-D_GNU_SOURCE",
-            "--disable-nls",
-            "--disable-shared",
-            "--enable-static",
-            "--prefix=/usr/local",
-        ]
-        make_cmd = ["make"]
-        install_cmd = ["make", f"DESTDIR={stage_dir}", "install"]
+        configure = src_root / "configure"
+        if not configure.exists():
+            raise RuntimeError(f"Missing configure script for {NAME}")
 
-        _run_cmd(configure_cmd, cwd=src_dir, env=env)
-        _run_cmd(make_cmd, cwd=src_dir, env=env)
-        _run_cmd(install_cmd, cwd=src_dir, env=env)
-
-        built_binary = stage_dir / "usr" / "local" / "bin" / "flex"
-        if not built_binary.exists():
-            raise RuntimeError(f"Expected flex binary missing at {built_binary}")
-
-        shutil.copy2(built_binary, output)
-        output.chmod(0o755)
+        _run_cmd(
+            ["bash", "./configure", f"--prefix={output}", *CONFIG_ARGS],
+            cwd=src_root,
+            env=env,
+        )
+        _run_cmd(["make"], cwd=src_root, env=env)
+        _run_cmd(["make", "install"], cwd=src_root, env=env)
 
 
 def _run_cmd(cmd: list[str], *, cwd: Path, env: "dict[str, str]") -> None:
@@ -156,33 +160,31 @@ def _run_cmd(cmd: list[str], *, cwd: Path, env: "dict[str, str]") -> None:
 
 
 def _ensure_tarball(build_dir: Path) -> Path:
-    """Place the flex tarball in build_dir, downloading or copying as needed."""
-
     build_dir.mkdir(parents=True, exist_ok=True)
-    destination = build_dir / FLEX_TARBALL_NAME
+    destination = build_dir / TARBALL_NAME
 
     if destination.exists():
         return destination
 
-    bundled = PROJECT_ROOT / FLEX_TARBALL_NAME
+    bundled = PROJECT_ROOT / TARBALL_NAME
     if bundled.exists():
         shutil.copy2(bundled, destination)
         return destination
 
-    print("downloading", FLEX_TARBALL_URL)
-    response = requests.get(FLEX_TARBALL_URL, timeout=600)
+    print("downloading", TARBALL_URL)
+    response = requests.get(TARBALL_URL, timeout=600)
     response.raise_for_status()
+
+    bundled.write_bytes(response.content)
     destination.write_bytes(response.content)
 
     return destination
 
 
-def _resolve_source(tarball_path: Path, extract_dir: Path) -> Path:
-    with tarfile.open(tarball_path, "r:gz") as tar:
+def _resolve_source(tarball_path: Path, extract_dir: Path):
+    with tarfile.open(tarball_path, "r") as tar:
         tar.extractall(extract_dir)
 
-    src_dir = extract_dir / f"flex-{FLEX_VERSION}"
+    src_dir = extract_dir / f"{NAME}-{VERSION}"
     if not src_dir.exists():
         raise RuntimeError(f"flex sources not found at {src_dir}")
-
-    return src_dir
