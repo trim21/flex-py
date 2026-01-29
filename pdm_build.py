@@ -21,6 +21,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
     print("[flex-bin]: getting targets for {!r}".format(arch), file=sys.stderr)
+    print("[flex-bin]: uname {!r}".format(platform.uname()), file=sys.stderr)
 
     if arch in {"x86_64", "amd64"}:
         return "x86_64-linux-musl", "x86_64"
@@ -30,12 +31,17 @@ def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
         return "x86-linux-musl", "i686"
     if arch in {"s390x"}:
         return "s390x-linux-musl", "s390x"
-    if arch in {"armv7l", "armv7"}:
-        # armv7l wheels on PyPI are typically hard-float.
-        return "arm-linux-musleabi", "armv7l"
-
     if arch in {"ppc64le"}:
         return "powerpc64le-linux-musl", "ppc64le"
+
+    # not sure how armv7l is handled
+
+    # armv7l wheels on PyPI are typically hard-float.
+    if arch in {"armv7l", "armv7"}:
+        return "arm-linux-musleabi", "armv7l"
+    # armv7l wheels on PyPI are typically hard-float.
+    if arch in {"armv8l", "armv8"}:
+        return "arm-linux-musleabi", "armv7l"
 
     return None, None
 
