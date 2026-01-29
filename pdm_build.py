@@ -19,42 +19,25 @@ FLEX_TARBALL_NAME = f"flex-{FLEX_VERSION}.tar.gz"
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 
-def _zig_target_for_arch(arch: str) -> "str | None":
+def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
     # Zig target triples (arch-os-abi).
     if arch in {"x86_64", "amd64"}:
-        return "x86_64-linux-musl"
+        return "x86_64-linux-musl", "x86_64"
     if arch in {"aarch64", "arm64"}:
-        return "aarch64-linux-musl"
+        return "aarch64-linux-musl", "aarch64"
     if arch in {"i386", "i486", "i586", "i686", "x86"}:
-        return "x86-linux-musl"
+        return "x86-linux-musl", "i686"
     if arch in {"s390x"}:
-        return "s390x-linux-musl"
+        return "s390x-linux-musl", "s390x"
     if arch in {"armv7l", "armv7"}:
         # armv7l wheels on PyPI are typically hard-float.
-        return "arm-linux-musleabi"
+        return "arm-linux-musleabi", "armv7l"
 
-    return None
-
-
-def _pypi_arch_for_arch(arch: str) -> "str | None":
-    if arch in {"x86_64", "amd64"}:
-        return "x86_64"
-    if arch in {"aarch64", "arm64"}:
-        return "aarch64"
-    if arch in {"i386", "i486", "i586", "i686", "x86"}:
-        return "i686"
-    if arch in {"s390x"}:
-        return "s390x"
-    # if arch in {"ppc64le"}:
-    # return "ppc64le"
-    if arch in {"armv7l", "armv7"}:
-        return "armv7l"
-    return None
+    return None, None
 
 
 BUILD_ARCH = platform.machine().strip().lower().replace("-", "_")
-ZIG_TARGET = _zig_target_for_arch(BUILD_ARCH)
-PYPI_ARCH = _pypi_arch_for_arch(BUILD_ARCH)
+ZIG_TARGET, PYPI_ARCH = _zig_target_for_arch(BUILD_ARCH)
 
 
 def _default_linux_plat_name() -> "list[str] | None":
