@@ -35,20 +35,28 @@ jobs:
         include:
           - runner: macos-15
             arch: native
+            skip: ''
           - runner: macos-15-intel
             arch: native
+            skip: ''
           - runner: ubuntu-24.04
             arch: x86_64
+            skip: ''
           - runner: ubuntu-24.04
             arch: i686
+            skip: ''
           - runner: ubuntu-24.04
             arch: armv7l
+            skip: ''
           - runner: ubuntu-24.04-arm
             arch: aarch64
+            skip: ''
           - runner: ubuntu-24.04
             arch: s390x
+            skip: ''
           - runner: ubuntu-24.04
             arch: ppc64le
+            skip: '*-musllinux*'
     steps:
       - uses: actions/checkout@v4
 
@@ -75,6 +83,7 @@ jobs:
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_ARCHS_MACOS: native
+          CIBW_SKIP: ${{ matrix.skip }}
         with:
           package-dir: sdist
 
