@@ -50,12 +50,12 @@ jobs:
           - runner: ubuntu-24.04-arm
             arch: aarch64
             skip: ''
-          - runner: ubuntu-24.04
-            arch: s390x
-            skip: '*musllinux*'
-          - runner: ubuntu-24.04
-            arch: ppc64le
-            skip: '*musllinux*'
+          # - runner: ubuntu-24.04
+          #   arch: s390x
+          #   skip: '*musllinux*'
+          # - runner: ubuntu-24.04
+          #   arch: ppc64le
+          #   skip: '*musllinux*'
     steps:
       - name: Download sdist artifact
         uses: actions/download-artifact@v4
