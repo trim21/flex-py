@@ -36,8 +36,8 @@ def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
     if arch in {"ppc64le"}:
         return "powerpc64le-linux-musl", "ppc64le"
 
-    if arch in {"ppc64"}:
-        return "powerpc64-linux-musl", "ppc64"
+    if arch in {"riscv64"}:
+        return "riscv64-linux-musl", "riscv64"
 
     return None, None
 
