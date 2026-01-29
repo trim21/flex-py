@@ -45,8 +45,8 @@ def _pypi_arch_for_arch(arch: str) -> "str | None":
         return "i686"
     if arch in {"s390x"}:
         return "s390x"
-    if arch in {"ppc64le"}:
-        return "ppc64le"
+    # if arch in {"ppc64le"}:
+    # return "ppc64le"
     if arch in {"armv7l", "armv7"}:
         return "armv7l"
     return None
