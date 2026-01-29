@@ -62,7 +62,7 @@ def pdm_build_initialize(context: Context) -> None:
     if context.target == "sdist":
         return
 
-    config_settings: dict[str, Any] = {
+    config_settings: "dict[str, Any]" = {
         "--python-tag": "py3",
         "--py-limited-api": "none",
         **context.builder.config_settings,
