@@ -27,16 +27,36 @@ jobs:
           path: dist/*
 
   wheel:
-    runs-on: ${{ matrix.platform.runner }}
+    runs-on: ${{ matrix.runner }}
     needs: [sdist]
     strategy:
       fail-fast: false
       matrix:
-        platform:
+        include:
           - runner: macos-15
+            arch: native
+            skip: ''
           - runner: macos-15-intel
+            arch: native
+            skip: ''
           - runner: ubuntu-24.04
+            arch: x86_64
+            skip: ''
+          - runner: ubuntu-24.04
+            arch: i686
+            skip: ''
           - runner: ubuntu-24.04-arm
+            arch: armv7l
+            skip: ''
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+            skip: ''
+          - runner: ubuntu-24.04
+            arch: s390x
+            skip: '*-musllinux*'
+          - runner: ubuntu-24.04
+            arch: ppc64le
+            skip: '*-musllinux*'
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +65,10 @@ jobs:
         with:
           name: wheels-sdist
           path: dist
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        if: ${{ runner.os == 'Linux' }}
 
       - name: Extract sdist
         run: |
@@ -58,7 +82,9 @@ jobs:
 
       - uses: pypa/cibuildwheel@v3.3.1
         env:
-          CIBW_ARCHS: 'native'
+          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_ARCHS_MACOS: native
+          CIBW_SKIP: ${{ matrix.skip }}
         with:
           package-dir: sdist
 
@@ -67,7 +93,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ runner.os }}-${{ runner.arch }}
+          name: wheels-${{ matrix.runner }}-${{ matrix.arch }}
           path: wheelhouse/*
 
   merge-wheel-artifact:

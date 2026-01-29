@@ -21,29 +21,37 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 machine = platform.machine().lower()
 if machine in {"x86_64", "amd64"}:
-    arch = "x64"
+    zig_arch = "x86_64"
 elif machine in {"aarch64", "arm64"}:
-    arch = "aarch64"
+    zig_arch = "aarch64"
 elif machine in {"i386", "i486", "i586", "i686", "x86"}:
-    arch = "x86"
+    zig_arch = "x86"
+elif machine in {"s390x"}:
+    zig_arch = "s390x"
 else:
-    raise Exception("unsupported arch {}".format(machine))
+    zig_arch = None
 
 
 def _default_linux_plat_name() -> "str | None":
     if not sys.platform.startswith("linux"):
         return None
 
+    if zig_arch is None:
+        return None
+
+    template = "manylinux_2_12_{0}.manylinux2010_{0}.musllinux_1_1_{0}"
+
     plats = {
-        "x64": "manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64",
-        "aarch64": "manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64",
-        "x86": "manylinux_2_12_i686.manylinux2010_i686.musllinux_1_1_i686",
+        "x86_64": template.format("x86_64"),
+        "aarch64": template.format("aarch64"),
+        "x86": template.format("i686"),
+        "s390x": template.format("s390x"),
     }
 
     try:
-        return plats[arch]
+        return plats[zig_arch]
     except KeyError:
-        raise RuntimeError(f"No plat-name mapping for {arch}") from None
+        raise RuntimeError(f"No plat-name mapping for {zig_arch}") from None
 
 
 def pdm_build_hook_enabled(context: "Context"):
@@ -91,14 +99,8 @@ def build_flex(tarball_path: Path, output: Path) -> None:
     env = os.environ.copy()
 
     if sys.platform == "linux":
-        if arch == "x64":
-            env["CC"] = "zig cc -target x86_64-linux-musl"
-        elif arch == "aarch64":
-            env["CC"] = "zig cc -target aarch64-linux-musl"
-        elif arch == "x86":
-            env["CC"] = "zig cc -target x86-linux-musl"
-        else:
-            raise Exception(f"unknown arch {platform.machine()}")
+        if zig_arch is not None:
+            env["CC"] = f"python-zig cc -target {zig_arch}-linux-musl"
 
     with TemporaryDirectory(prefix="flex-build-") as temp_dir:
         work_dir = Path(temp_dir)
