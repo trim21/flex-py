@@ -76,9 +76,12 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
 
-      - run: uv tool install https://github.com/henryiii/cibuildwheel/archive/refs/heads/henryiii/feat/uvbuild.zip
+      # - run: uv tool install https://github.com/henryiii/cibuildwheel/archive/refs/heads/henryiii/feat/uvbuild.zip
 
-      - run: cibuildwheel sdist
+      # - run: cibuildwheel sdist
+      - uses: pypa/cibuildwheel@v3.3.1
+        with:
+          package-dir: sdist
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_ARCHS_MACOS: native

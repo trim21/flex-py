@@ -52,7 +52,7 @@ excludes = [
 scripts = ["${BUILD_DIR}/prefix/bin/flex"]
 
 [tool.cibuildwheel]
-build-frontend = "uv"
+build-frontend = "build[uv]"
 test-command = "flex --version"
 
 [tool.cibuildwheel.macos]
