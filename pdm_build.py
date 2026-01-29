@@ -19,14 +19,6 @@ FLEX_TARBALL_NAME = f"flex-{FLEX_VERSION}.tar.gz"
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 
-def _normalize_arch(value: str) -> str:
-    return value.strip().lower().replace("-", "_")
-
-
-def _resolve_build_arch() -> str:
-    return _normalize_arch(platform.machine())
-
-
 def _zig_target_for_arch(arch: str) -> str | None:
     # Zig target triples (arch-os-abi).
     if arch in {"x86_64", "amd64"}:
@@ -62,7 +54,7 @@ def _pypi_arch_for_arch(arch: str) -> str | None:
     return None
 
 
-BUILD_ARCH = _resolve_build_arch()
+BUILD_ARCH = platform.machine().strip().lower().replace("-", "_")
 ZIG_TARGET = _zig_target_for_arch(BUILD_ARCH)
 PYPI_ARCH = _pypi_arch_for_arch(BUILD_ARCH)
 
