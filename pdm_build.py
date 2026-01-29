@@ -32,26 +32,31 @@ else:
     zig_arch = None
 
 
-def _default_linux_plat_name() -> "str | None":
+def _default_linux_plat_name() -> "list[str] | None":
     if not sys.platform.startswith("linux"):
         return None
 
     if zig_arch is None:
         return None
 
-    template = "manylinux_2_12_{0}.manylinux2010_{0}.musllinux_1_1_{0}"
+    templates = [
+        "manylinux_2_12_{0}",
+        "manylinux2010_{0}",
+        "musllinux_1_1_{0}",
+    ]
 
     plats = {
-        "x86_64": template.format("x86_64"),
-        "aarch64": template.format("aarch64"),
-        "x86": template.format("i686"),
-        "s390x": template.format("s390x"),
+        "x86_64": "x86_64",
+        "aarch64": "aarch64",
+        "x86": "i686",
+        "s390x": "s390x",
     }
 
-    try:
-        return plats[zig_arch]
-    except KeyError:
+    pypi_arch = plats.get(zig_arch)
+    if pypi_arch is None:
         raise RuntimeError(f"No plat-name mapping for {zig_arch}") from None
+
+    return [x.format(zig_arch) for x in templates]
 
 
 def pdm_build_hook_enabled(context: "Context"):
@@ -76,9 +81,9 @@ def pdm_build_initialize(context: Context) -> None:
         **context.builder.config_settings,
     }
 
-    # linux_plat_name = _default_linux_plat_name()
-    # if linux_plat_name is not None:
-    # config_settings["--plat-name"] = linux_plat_name
+    linux_plat_name = _default_linux_plat_name()
+    if linux_plat_name is not None:
+        config_settings["--plat-name"] = linux_plat_name
 
     context.builder.config_settings = config_settings
 

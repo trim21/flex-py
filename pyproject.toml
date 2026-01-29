@@ -1,6 +1,7 @@
 [build-system]
 requires = [
-  "pdm-backend",
+  # "pdm-backend",
+  'pdm-backend @ git+https://github.com/pdm-project/pdm-backend@263a598db674fcc0ee03fcd2414bea454a28b6a3',
   "requests",
   "ziglang>=0.15.1,<1 ; sys_platform == 'linux'",
 ]
@@ -51,7 +52,7 @@ excludes = [
 scripts = ["${BUILD_DIR}/gnu_flex/bin/*"]
 
 [tool.cibuildwheel]
-build-frontend = "build[uv]"
+build-frontend = "uv"
 test-command = "flex --version"
 
 [tool.cibuildwheel.macos]

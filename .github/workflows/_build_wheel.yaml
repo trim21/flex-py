@@ -77,16 +77,15 @@ jobs:
           ls -ahl sdist
 
       - name: Install the latest version of uv
-        if: ${{ runner.os != 'Linux' }}
         uses: astral-sh/setup-uv@v7
 
-      - uses: pypa/cibuildwheel@v3.3.1
+      - run: uv tool install https://github.com/henryiii/cibuildwheel/archive/refs/heads/henryiii/feat/uvbuild.zip
+
+      - run: cibuildwheel sdist
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_ARCHS_MACOS: native
           CIBW_SKIP: ${{ matrix.skip }}
-        with:
-          package-dir: sdist
 
       - run: ls -ahl wheelhouse
 
