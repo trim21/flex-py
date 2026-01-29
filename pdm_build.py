@@ -1,10 +1,13 @@
 import os
+import platform
 import shlex
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 import tarfile
 from tempfile import TemporaryDirectory
+from typing import Any
 
 import requests
 from pdm.backend.hooks import Context
@@ -16,11 +19,42 @@ FLEX_TARBALL_NAME = f"flex-{FLEX_VERSION}.tar.gz"
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 
+machine = platform.machine().lower()
+if machine in {"x86_64", "amd64"}:
+    arch = "x64"
+elif machine in {"aarch64", "arm64"}:
+    arch = "aarch64"
+elif machine in {"i386", "i486", "i586", "i686", "x86"}:
+    arch = "x86"
+else:
+    raise Exception("unsupported arch {}".format(machine))
+
+
+def _default_linux_plat_name() -> "str | None":
+    if not sys.platform.startswith("linux"):
+        return None
+
+    plats = {
+        "x64": "manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64",
+        "aarch64": "manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64",
+        "x86": "manylinux_2_12_i686.manylinux2010_i686.musllinux_1_1_i686",
+    }
+
+    try:
+        return plats[arch]
+    except KeyError:
+        raise RuntimeError(f"No plat-name mapping for {arch}") from None
+
+
 def pdm_build_hook_enabled(context: "Context"):
     return True
 
 
 def pdm_build_initialize(context: Context) -> None:
+    try:
+        shutil.rmtree(context.build_dir)
+    except FileNotFoundError:
+        pass
     build_dir = context.ensure_build_dir()
 
     tarball_path = _ensure_tarball(build_dir)
@@ -28,11 +62,17 @@ def pdm_build_initialize(context: Context) -> None:
     if context.target == "sdist":
         return
 
-    context.builder.config_settings = {
+    config_settings: "dict[str, Any]" = {
         "--python-tag": "py3",
         "--py-limited-api": "none",
         **context.builder.config_settings,
     }
+
+    linux_plat_name = _default_linux_plat_name()
+    if linux_plat_name is not None:
+        config_settings["--plat-name"] = linux_plat_name
+
+    context.builder.config_settings = config_settings
 
     output_path = build_dir / "gnu_flex" / "bin" / "flex"
 
@@ -40,12 +80,25 @@ def pdm_build_initialize(context: Context) -> None:
 
 
 def pdm_build_finalize(context: "Context", artifact: Path) -> None:
-    if context.build_dir.exists():
-        shutil.rmtree(context.build_dir)
+    pass
+    # if context.build_dir.exists():
+    #     shutil.rmtree(context.build_dir)
 
 
 def build_flex(tarball_path: Path, output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
+
+    env = os.environ.copy()
+
+    if sys.platform == "linux":
+        if arch == "x64":
+            env["CC"] = "zig cc -target x86_64-linux-musl"
+        elif arch == "aarch64":
+            env["CC"] = "zig cc -target aarch64-linux-musl"
+        elif arch == "x86":
+            env["CC"] = "zig cc -target x86-linux-musl"
+        else:
+            raise Exception(f"unknown arch {platform.machine()}")
 
     with TemporaryDirectory(prefix="flex-build-") as temp_dir:
         work_dir = Path(temp_dir)
@@ -55,8 +108,6 @@ def build_flex(tarball_path: Path, output: Path) -> None:
         src_dir = _resolve_source(tarball_path, build_temp)
         stage_dir = work_dir / "flex-stage"
         stage_dir.mkdir(parents=True, exist_ok=True)
-
-        env = os.environ.copy()
 
         configure_cmd = [
             "./configure",
