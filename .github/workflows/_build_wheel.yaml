@@ -41,25 +41,23 @@ jobs:
             skip: ''
           - runner: ubuntu-24.04
             arch: x86_64
-            skip: ''
+            skip: '*musllinux*'
           - runner: ubuntu-24.04
             arch: i686
-            skip: ''
+            skip: '*musllinux*'
           - runner: ubuntu-24.04-arm
             arch: armv7l
-            skip: ''
+            # skip: '*musllinux*'
           - runner: ubuntu-24.04-arm
             arch: aarch64
-            skip: ''
-          - runner: ubuntu-24.04
-            arch: s390x
-            skip: '*-musllinux*'
-          - runner: ubuntu-24.04
-            arch: ppc64le
-            skip: '*-musllinux*'
+            skip: '*musllinux*'
+          # - runner: ubuntu-24.04
+          #   arch: s390x
+          #   skip: '*musllinux*'
+          # - runner: ubuntu-24.04
+          #   arch: ppc64le
+          #   skip: '*musllinux*'
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download sdist artifact
         uses: actions/download-artifact@v4
         with:
@@ -77,16 +75,18 @@ jobs:
           ls -ahl sdist
 
       - name: Install the latest version of uv
-        if: ${{ runner.os != 'Linux' }}
         uses: astral-sh/setup-uv@v7
 
+      # - run: uv tool install https://github.com/henryiii/cibuildwheel/archive/refs/heads/henryiii/feat/uvbuild.zip
+
+      # - run: cibuildwheel sdist
       - uses: pypa/cibuildwheel@v3.3.1
+        with:
+          package-dir: sdist
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_ARCHS_MACOS: native
           CIBW_SKIP: ${{ matrix.skip }}
-        with:
-          package-dir: sdist
 
       - run: ls -ahl wheelhouse
 

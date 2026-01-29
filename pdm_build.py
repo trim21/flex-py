@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import platform
 import shlex
@@ -6,56 +8,88 @@ import subprocess
 import sys
 from pathlib import Path
 import tarfile
-from tempfile import TemporaryDirectory
 from typing import Any
 
 import requests
 from pdm.backend.hooks import Context
 
+NAME = "flex"
+VERSION = "2.6.4"
+TARBALL_URL = (
+    f"https://github.com/westes/flex/releases/download/v{VERSION}/flex-{VERSION}.tar.gz"
+)
+TARBALL_NAME = f"{NAME}-{VERSION}.tar.gz"
 
-FLEX_VERSION = "2.6.4"
-FLEX_TARBALL_URL = f"https://github.com/westes/flex/releases/download/v{FLEX_VERSION}/flex-{FLEX_VERSION}.tar.gz"
-FLEX_TARBALL_NAME = f"flex-{FLEX_VERSION}.tar.gz"
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).parent
+SRC_ROOT = PROJECT_ROOT.joinpath("src")
+VENDORED_TARBALL = SRC_ROOT.joinpath(TARBALL_NAME)
+
+TARGET_PREFIX = "prefix"
+CONFIG_ARGS = [
+    "CFLAGS=-D_GNU_SOURCE",
+    "--disable-nls",
+    "--disable-shared",
+    "--enable-static",
+]
 
 
-machine = platform.machine().lower()
-if machine in {"x86_64", "amd64"}:
-    zig_arch = "x86_64"
-elif machine in {"aarch64", "arm64"}:
-    zig_arch = "aarch64"
-elif machine in {"i386", "i486", "i586", "i686", "x86"}:
-    zig_arch = "x86"
-elif machine in {"s390x"}:
-    zig_arch = "s390x"
-else:
-    zig_arch = None
+def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
+    print("[bison-bin]: getting targets for {!r}".format(arch), file=sys.stderr)
+    print("[bison-bin]: uname {!r}".format(platform.uname()), file=sys.stderr)
+
+    if arch in {"x86_64", "amd64"}:
+        return "x86_64-linux-musl", "x86_64"
+    if arch in {"aarch64", "arm64"}:
+        return "aarch64-linux-musl", "aarch64"
+    if arch in {"i386", "i486", "i586", "i686", "x86"}:
+        return "x86-linux-musl", "i686"
+    if arch in {"s390x"}:
+        return "s390x-linux-musl", "s390x"
+    if arch in {"ppc64le"}:
+        return "powerpc64le-linux-musl", "ppc64le"
+
+    # if arch in {"armv7l", "armv7"}:
+    #     return "arm-linux-musleabi", "armv7l"
+    # if arch in {"armv8l", "armv8"}:
+    #     return "arm-linux-musleabi", "armv7l"
+
+    return None, None
 
 
-def _default_linux_plat_name() -> "str | None":
+ZIG_TARGET, PYPI_ARCH = _zig_target_for_arch(
+    platform.machine().strip().lower().replace("-", "_")
+)
+
+
+def _default_linux_plat_name() -> "list[str] | None":
     if not sys.platform.startswith("linux"):
         return None
 
-    if zig_arch is None:
+    if PYPI_ARCH is None:
         return None
 
-    template = "manylinux_2_12_{0}.manylinux2010_{0}.musllinux_1_1_{0}"
+    if PYPI_ARCH in {"x86_64", "i686"}:
+        templates = [
+            "manylinux_2_5_{0}",
+            "manylinux1_{0}",
+            "musllinux_1_1_{0}",
+        ]
+    else:
+        templates = [
+            "manylinux_2_17_{0}",
+            "manylinux2014_{0}",
+            "musllinux_1_1_{0}",
+        ]
 
-    plats = {
-        "x86_64": template.format("x86_64"),
-        "aarch64": template.format("aarch64"),
-        "x86": template.format("i686"),
-        "s390x": template.format("s390x"),
-    }
-
-    try:
-        return plats[zig_arch]
-    except KeyError:
-        raise RuntimeError(f"No plat-name mapping for {zig_arch}") from None
+    return [x.format(PYPI_ARCH) for x in templates]
 
 
 def pdm_build_hook_enabled(context: "Context"):
     return True
+
+
+def pdm_build_finalize(context: Context, artifact: Path) -> None:
+    pass
 
 
 def pdm_build_initialize(context: Context) -> None:
@@ -63,8 +97,8 @@ def pdm_build_initialize(context: Context) -> None:
         shutil.rmtree(context.build_dir)
     except FileNotFoundError:
         pass
-    build_dir = context.ensure_build_dir()
 
+    build_dir = context.ensure_build_dir()
     tarball_path = _ensure_tarball(build_dir)
 
     if context.target == "sdist":
@@ -76,62 +110,43 @@ def pdm_build_initialize(context: Context) -> None:
         **context.builder.config_settings,
     }
 
-    # linux_plat_name = _default_linux_plat_name()
-    # if linux_plat_name is not None:
-    # config_settings["--plat-name"] = linux_plat_name
+    linux_plat_name = _default_linux_plat_name()
+    if linux_plat_name is not None:
+        config_settings["--plat-name"] = linux_plat_name
 
     context.builder.config_settings = config_settings
 
-    output_path = build_dir / "gnu_flex" / "bin" / "flex"
+    output_path = build_dir.joinpath(TARGET_PREFIX)
 
-    build_flex(tarball_path, output_path)
-
-
-def pdm_build_finalize(context: "Context", artifact: Path) -> None:
-    pass
-    # if context.build_dir.exists():
-    #     shutil.rmtree(context.build_dir)
+    build_tar(build_dir, tarball_path, output_path)
 
 
-def build_flex(tarball_path: Path, output: Path) -> None:
-    output.parent.mkdir(parents=True, exist_ok=True)
-
+def build_tar(
+    build_dir: Path,
+    tarball_path: Path,
+    output: Path,
+):
     env = os.environ.copy()
 
     if sys.platform == "linux":
-        if zig_arch is not None:
-            env["CC"] = f"python-zig cc -target {zig_arch}-linux-musl"
+        if ZIG_TARGET is not None:
+            env["CC"] = f"python-zig cc -target {ZIG_TARGET}"
 
-    with TemporaryDirectory(prefix="flex-build-") as temp_dir:
-        work_dir = Path(temp_dir)
-        build_temp = work_dir / "build"
-        build_temp.mkdir(parents=True, exist_ok=True)
+    build_dir = build_dir.joinpath("build")
 
-        src_dir = _resolve_source(tarball_path, build_temp)
-        stage_dir = work_dir / "flex-stage"
-        stage_dir.mkdir(parents=True, exist_ok=True)
+    src_root = _extract(tarball_path, build_dir)
 
-        configure_cmd = [
-            "./configure",
-            "CFLAGS=-D_GNU_SOURCE",
-            "--disable-nls",
-            "--disable-shared",
-            "--enable-static",
-            "--prefix=/usr/local",
-        ]
-        make_cmd = ["make"]
-        install_cmd = ["make", f"DESTDIR={stage_dir}", "install"]
+    configure = src_root / "configure"
+    if not configure.exists():
+        raise RuntimeError(f"Missing configure script for {NAME}")
 
-        _run_cmd(configure_cmd, cwd=src_dir, env=env)
-        _run_cmd(make_cmd, cwd=src_dir, env=env)
-        _run_cmd(install_cmd, cwd=src_dir, env=env)
-
-        built_binary = stage_dir / "usr" / "local" / "bin" / "flex"
-        if not built_binary.exists():
-            raise RuntimeError(f"Expected flex binary missing at {built_binary}")
-
-        shutil.copy2(built_binary, output)
-        output.chmod(0o755)
+    _run_cmd(
+        ["bash", "./configure", f"--prefix={output}", *CONFIG_ARGS],
+        cwd=src_root,
+        env=env,
+    )
+    _run_cmd(["make"], cwd=src_root, env=env)
+    _run_cmd(["make", "install"], cwd=src_root, env=env)
 
 
 def _run_cmd(cmd: list[str], *, cwd: Path, env: "dict[str, str]") -> None:
@@ -140,33 +155,36 @@ def _run_cmd(cmd: list[str], *, cwd: Path, env: "dict[str, str]") -> None:
 
 
 def _ensure_tarball(build_dir: Path) -> Path:
-    """Place the flex tarball in build_dir, downloading or copying as needed."""
-
     build_dir.mkdir(parents=True, exist_ok=True)
-    destination = build_dir / FLEX_TARBALL_NAME
+    destination = build_dir / TARBALL_NAME
 
     if destination.exists():
         return destination
 
-    bundled = PROJECT_ROOT / FLEX_TARBALL_NAME
+    bundled = PROJECT_ROOT / TARBALL_NAME
     if bundled.exists():
         shutil.copy2(bundled, destination)
         return destination
 
-    print("downloading", FLEX_TARBALL_URL)
-    response = requests.get(FLEX_TARBALL_URL, timeout=600)
+    print("downloading", TARBALL_URL)
+    response = requests.get(TARBALL_URL, timeout=600)
     response.raise_for_status()
+
+    bundled.write_bytes(response.content)
     destination.write_bytes(response.content)
 
     return destination
 
 
-def _resolve_source(tarball_path: Path, extract_dir: Path) -> Path:
-    with tarfile.open(tarball_path, "r:gz") as tar:
-        tar.extractall(extract_dir)
+def _extract(archive: Path, target: Path) -> Path:
+    if target.exists():
+        shutil.rmtree(target)
+    target.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(archive, "r:*") as tf:
+        tf.extractall(target)
+        tops = {Path(member.name).parts[0] for member in tf.getmembers() if member.name}
+    roots = [target / name for name in tops if (target / name).exists()]
+    if len(roots) == 1:
+        return roots[0]
 
-    src_dir = extract_dir / f"flex-{FLEX_VERSION}"
-    if not src_dir.exists():
-        raise RuntimeError(f"flex sources not found at {src_dir}")
-
-    return src_dir
+    raise Exception("Multiple root directory in tar: {}".format(roots))

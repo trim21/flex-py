@@ -1,6 +1,7 @@
 [build-system]
 requires = [
-  "pdm-backend",
+  # "pdm-backend",
+  'pdm-backend @ git+https://github.com/pdm-project/pdm-backend@263a598db674fcc0ee03fcd2414bea454a28b6a3',
   "requests",
   "ziglang>=0.15.1,<1 ; sys_platform == 'linux'",
 ]
@@ -43,12 +44,12 @@ excludes = [
   "temp.*/**",
   ".venv/**",
   ".ruff_cache/**",
-  "gnu_flex/",
+  "prefix",
   ".gitignore",
 ]
 
 [tool.pdm.build.wheel-data]
-scripts = ["${BUILD_DIR}/gnu_flex/bin/*"]
+scripts = ["${BUILD_DIR}/prefix/bin/flex"]
 
 [tool.cibuildwheel]
 build-frontend = "build[uv]"
