@@ -33,11 +33,18 @@ def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
         # armv7l wheels on PyPI are typically hard-float.
         return "arm-linux-musleabi", "armv7l"
 
+    if arch in {"ppc64le"}:
+        return "powerpc64le-linux-musl", "ppc64le"
+
+    if arch in {"ppc64"}:
+        return "powerpc64-linux-musl", "ppc64"
+
     return None, None
 
 
-BUILD_ARCH = platform.machine().strip().lower().replace("-", "_")
-ZIG_TARGET, PYPI_ARCH = _zig_target_for_arch(BUILD_ARCH)
+ZIG_TARGET, PYPI_ARCH = _zig_target_for_arch(
+    platform.machine().strip().lower().replace("-", "_")
+)
 
 
 def _default_linux_plat_name() -> "list[str] | None":

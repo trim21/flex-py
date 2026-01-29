@@ -56,7 +56,7 @@ jobs:
             skip: ''
           - runner: ubuntu-24.04
             arch: ppc64le
-            skip: ''
+            # skip: '*musllinux*'
     steps:
       - uses: actions/checkout@v4
 
