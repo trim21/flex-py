@@ -88,16 +88,7 @@ def pdm_build_finalize(context: "Context", artifact: Path) -> None:
 def build_flex(tarball_path: Path, output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    with TemporaryDirectory(prefix="flex-build-") as temp_dir:
-        work_dir = Path(temp_dir)
-        build_temp = work_dir / "build"
-        build_temp.mkdir(parents=True, exist_ok=True)
-
-        src_dir = _resolve_source(tarball_path, build_temp)
-        stage_dir = work_dir / "flex-stage"
-        stage_dir.mkdir(parents=True, exist_ok=True)
-
-        env = os.environ.copy()
+    env = os.environ.copy()
 
     if sys.platform == "linux":
         if arch == "x64":
@@ -108,6 +99,15 @@ def build_flex(tarball_path: Path, output: Path) -> None:
             env["CC"] = "zig cc -target x86-linux-musl"
         else:
             raise Exception(f"unknown arch {platform.machine()}")
+
+    with TemporaryDirectory(prefix="flex-build-") as temp_dir:
+        work_dir = Path(temp_dir)
+        build_temp = work_dir / "build"
+        build_temp.mkdir(parents=True, exist_ok=True)
+
+        src_dir = _resolve_source(tarball_path, build_temp)
+        stage_dir = work_dir / "flex-stage"
+        stage_dir.mkdir(parents=True, exist_ok=True)
 
         configure_cmd = [
             "./configure",
