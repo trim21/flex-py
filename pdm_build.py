@@ -20,7 +20,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 
 def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
-    # Zig target triples (arch-os-abi).
+    print("getting targets for {!r}".format(arch))
+
     if arch in {"x86_64", "amd64"}:
         return "x86_64-linux-musl", "x86_64"
     if arch in {"aarch64", "arm64"}:
