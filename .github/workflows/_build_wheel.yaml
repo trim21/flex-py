@@ -52,10 +52,10 @@ jobs:
             skip: ''
           - runner: ubuntu-24.04
             arch: s390x
-            skip: ''
+            skip: '*musllinux*'
           - runner: ubuntu-24.04
             arch: ppc64le
-            # skip: '*musllinux*'
+            skip: '*musllinux*'
     steps:
       - name: Download sdist artifact
         uses: actions/download-artifact@v4
