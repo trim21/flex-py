@@ -19,44 +19,77 @@ FLEX_TARBALL_NAME = f"flex-{FLEX_VERSION}.tar.gz"
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 
-machine = platform.machine().lower()
-if machine in {"x86_64", "amd64"}:
-    zig_arch = "x86_64"
-elif machine in {"aarch64", "arm64"}:
-    zig_arch = "aarch64"
-elif machine in {"i386", "i486", "i586", "i686", "x86"}:
-    zig_arch = "x86"
-elif machine in {"s390x"}:
-    zig_arch = "s390x"
-else:
-    zig_arch = None
+def _normalize_arch(value: str) -> str:
+    return value.strip().lower().replace("-", "_")
+
+
+def _resolve_build_arch() -> str:
+    return _normalize_arch(platform.machine())
+
+
+def _zig_target_for_arch(arch: str) -> str | None:
+    # Zig target triples (arch-os-abi).
+    if arch in {"x86_64", "amd64"}:
+        return "x86_64-linux-musl"
+    if arch in {"aarch64", "arm64"}:
+        return "aarch64-linux-musl"
+    if arch in {"i386", "i486", "i586", "i686", "x86"}:
+        return "x86-linux-musl"
+    if arch in {"s390x"}:
+        return "s390x-linux-musl"
+    if arch in {"ppc64le"}:
+        return "ppc64le-linux-musl"
+    if arch in {"armv7l", "armv7"}:
+        # armv7l wheels on PyPI are typically hard-float.
+        return "arm-linux-musleabihf"
+
+    return None
+
+
+def _pypi_arch_for_arch(arch: str) -> str | None:
+    if arch in {"x86_64", "amd64"}:
+        return "x86_64"
+    if arch in {"aarch64", "arm64"}:
+        return "aarch64"
+    if arch in {"i386", "i486", "i586", "i686", "x86"}:
+        return "i686"
+    if arch in {"s390x"}:
+        return "s390x"
+    if arch in {"ppc64le"}:
+        return "ppc64le"
+    if arch in {"armv7l", "armv7"}:
+        return "armv7l"
+    return None
+
+
+BUILD_ARCH = _resolve_build_arch()
+ZIG_TARGET = _zig_target_for_arch(BUILD_ARCH)
+PYPI_ARCH = _pypi_arch_for_arch(BUILD_ARCH)
 
 
 def _default_linux_plat_name() -> "list[str] | None":
     if not sys.platform.startswith("linux"):
         return None
 
-    if zig_arch is None:
+    if PYPI_ARCH is None:
         return None
 
-    templates = [
-        "manylinux_2_12_{0}",
-        "manylinux2010_{0}",
-        "musllinux_1_1_{0}",
-    ]
+    # Keep older glibc baselines for x86/x86_64, but use manylinux2014 (glibc 2.17)
+    # for arches that are only standardized there.
+    if PYPI_ARCH in {"armv7l", "ppc64le"}:
+        templates = [
+            "manylinux_2_17_{0}",
+            "manylinux2014_{0}",
+            "musllinux_1_1_{0}",
+        ]
+    else:
+        templates = [
+            "manylinux_2_12_{0}",
+            "manylinux2010_{0}",
+            "musllinux_1_1_{0}",
+        ]
 
-    plats = {
-        "x86_64": "x86_64",
-        "aarch64": "aarch64",
-        "x86": "i686",
-        "s390x": "s390x",
-    }
-
-    pypi_arch = plats.get(zig_arch)
-    if pypi_arch is None:
-        raise RuntimeError(f"No plat-name mapping for {zig_arch}") from None
-
-    return [x.format(zig_arch) for x in templates]
+    return [x.format(PYPI_ARCH) for x in templates]
 
 
 def pdm_build_hook_enabled(context: "Context"):
@@ -104,8 +137,8 @@ def build_flex(tarball_path: Path, output: Path) -> None:
     env = os.environ.copy()
 
     if sys.platform == "linux":
-        if zig_arch is not None:
-            env["CC"] = f"python-zig cc -target {zig_arch}-linux-musl"
+        if ZIG_TARGET is not None:
+            env["CC"] = f"python-zig cc -target {ZIG_TARGET}"
 
     with TemporaryDirectory(prefix="flex-build-") as temp_dir:
         work_dir = Path(temp_dir)
