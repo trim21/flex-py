@@ -20,7 +20,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 
 def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
-    print("getting targets for {!r}".format(arch))
+    print("[flex-bin]: getting targets for {!r}".format(arch), file=sys.stderr)
 
     if arch in {"x86_64", "amd64"}:
         return "x86_64-linux-musl", "x86_64"
