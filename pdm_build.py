@@ -34,14 +34,10 @@ def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
     if arch in {"ppc64le"}:
         return "powerpc64le-linux-musl", "ppc64le"
 
-    # not sure how armv7l is handled
-
-    # armv7l wheels on PyPI are typically hard-float.
-    if arch in {"armv7l", "armv7"}:
-        return "arm-linux-musleabi", "armv7l"
-    # armv7l wheels on PyPI are typically hard-float.
-    if arch in {"armv8l", "armv8"}:
-        return "arm-linux-musleabi", "armv7l"
+    # if arch in {"armv7l", "armv7"}:
+    #     return "arm-linux-musleabi", "armv7l"
+    # if arch in {"armv8l", "armv8"}:
+    #     return "arm-linux-musleabi", "armv7l"
 
     return None, None
 
