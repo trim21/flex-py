@@ -99,7 +99,8 @@ def build_flex(tarball_path: Path, output: Path) -> None:
 
         env = os.environ.copy()
 
-        env["CC"] = "zig cc -target x86_64-linux-musl"
+        if sys.platform == "linux":
+            env["CC"] = "zig cc -target x86_64-linux-musl"
 
         configure_cmd = [
             "./configure",
