@@ -66,18 +66,16 @@ def _default_linux_plat_name() -> "list[str] | None":
     if PYPI_ARCH is None:
         return None
 
-    # Keep older glibc baselines for x86/x86_64, but use manylinux2014 (glibc 2.17)
-    # for arches that are only standardized there.
-    if PYPI_ARCH in {"armv7l", "ppc64le"}:
+    if PYPI_ARCH in {"x86_64", "i686"}:
         templates = [
-            "manylinux_2_17_{0}",
-            "manylinux2014_{0}",
+            "manylinux_2_5_{0}",
+            "manylinux1_{0}",
             "musllinux_1_1_{0}",
         ]
     else:
         templates = [
-            "manylinux_2_12_{0}",
-            "manylinux2010_{0}",
+            "manylinux_2_17_{0}",
+            "manylinux2014_{0}",
             "musllinux_1_1_{0}",
         ]
 
