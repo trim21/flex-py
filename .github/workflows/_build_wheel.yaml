@@ -53,10 +53,10 @@ jobs:
             skip: ''
           - runner: ubuntu-24.04
             arch: s390x
-            skip: '*-musllinux*'
+            skip: '*'
           - runner: ubuntu-24.04
             arch: ppc64le
-            skip: '*-musllinux*'
+            skip: ''
     steps:
       - uses: actions/checkout@v4
 
