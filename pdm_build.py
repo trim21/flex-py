@@ -76,9 +76,9 @@ def pdm_build_initialize(context: Context) -> None:
         **context.builder.config_settings,
     }
 
-    linux_plat_name = _default_linux_plat_name()
-    if linux_plat_name is not None:
-        config_settings["--plat-name"] = linux_plat_name
+    # linux_plat_name = _default_linux_plat_name()
+    # if linux_plat_name is not None:
+    # config_settings["--plat-name"] = linux_plat_name
 
     context.builder.config_settings = config_settings
 
