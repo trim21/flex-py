@@ -53,7 +53,7 @@ jobs:
             skip: ''
           - runner: ubuntu-24.04
             arch: s390x
-            skip: '*'
+            skip: ''
           - runner: ubuntu-24.04
             arch: ppc64le
             skip: ''

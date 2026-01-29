@@ -19,7 +19,7 @@ FLEX_TARBALL_NAME = f"flex-{FLEX_VERSION}.tar.gz"
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 
-def _zig_target_for_arch(arch: str) -> str | None:
+def _zig_target_for_arch(arch: str) -> "str | None":
     # Zig target triples (arch-os-abi).
     if arch in {"x86_64", "amd64"}:
         return "x86_64-linux-musl"
@@ -38,7 +38,7 @@ def _zig_target_for_arch(arch: str) -> str | None:
     return None
 
 
-def _pypi_arch_for_arch(arch: str) -> str | None:
+def _pypi_arch_for_arch(arch: str) -> "str | None":
     if arch in {"x86_64", "amd64"}:
         return "x86_64"
     if arch in {"aarch64", "arm64"}:
