@@ -83,7 +83,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ runner.arch }}
+          name: wheels-${{ matrix.runner }}-${{ matrix.arch }}
           path: wheelhouse/*
 
   merge-wheel-artifact:

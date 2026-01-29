@@ -21,11 +21,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 machine = platform.machine().lower()
 if machine in {"x86_64", "amd64"}:
-    zig_arch = "x64"
+    zig_arch = "x86_64"
 elif machine in {"aarch64", "arm64"}:
     zig_arch = "aarch64"
 elif machine in {"i386", "i486", "i586", "i686", "x86"}:
     zig_arch = "x86"
+elif machine in {"s390x"}:
+    zig_arch = "s390x"
 else:
     zig_arch = None
 
@@ -38,9 +40,10 @@ def _default_linux_plat_name() -> "str | None":
         return None
 
     plats = {
-        "x64": "manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64",
+        "x86_64": "manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64",
         "aarch64": "manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64",
         "x86": "manylinux_2_12_i686.manylinux2010_i686.musllinux_1_1_i686",
+        "s390x": "manylinux_2_17_s390x.manylinux2014_s390x",
     }
 
     try:
@@ -94,12 +97,8 @@ def build_flex(tarball_path: Path, output: Path) -> None:
     env = os.environ.copy()
 
     if sys.platform == "linux":
-        if zig_arch == "x64":
-            env["CC"] = "python-zig cc -target x86_64-linux-musl"
-        elif zig_arch == "aarch64":
-            env["CC"] = "python-zig cc -target aarch64-linux-musl"
-        elif zig_arch == "x86":
-            env["CC"] = "python-zig cc -target x86-linux-musl"
+        if zig_arch is not None:
+            env["CC"] = f"python-zig cc -target {zig_arch}-linux-musl"
 
     with TemporaryDirectory(prefix="flex-build-") as temp_dir:
         work_dir = Path(temp_dir)
