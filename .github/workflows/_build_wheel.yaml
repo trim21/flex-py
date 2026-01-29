@@ -26,54 +26,17 @@ jobs:
           name: wheels-sdist
           path: dist/*
 
-  wheel-macos:
-    runs-on: ${{ matrix.runner }}
-    needs: [sdist]
-    strategy:
-      fail-fast: false
-      matrix:
-        runner:
-          - macos-15
-          - macos-15-intel
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download sdist artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: wheels-sdist
-          path: dist
-
-      - name: Extract sdist
-        run: |
-          mkdir -p sdist
-          tar -xzf dist/*.tar.gz -C sdist --strip-components=1
-          ls -ahl sdist
-
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v7
-
-      - uses: pypa/cibuildwheel@v3.3.1
-        env:
-          CIBW_ARCHS_MACOS: native
-        with:
-          package-dir: sdist
-
-      - run: ls -ahl wheelhouse
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-macos-${{ runner.arch }}
-          path: wheelhouse/*
-
-  wheel-linux:
+  wheel:
     runs-on: ${{ matrix.runner }}
     needs: [sdist]
     strategy:
       fail-fast: false
       matrix:
         include:
+          - runner: macos-15
+            arch: native
+          - runner: macos-15-intel
+            arch: native
           - runner: ubuntu-24.04
             arch: x86_64
           - runner: ubuntu-24.04
@@ -95,6 +58,10 @@ jobs:
           name: wheels-sdist
           path: dist
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        if: ${{ runner.os == 'Linux' }}
+
       - name: Extract sdist
         run: |
           mkdir -p sdist
@@ -104,12 +71,10 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - uses: pypa/cibuildwheel@v3.3.1
         env:
-          CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_ARCHS_MACOS: native
         with:
           package-dir: sdist
 
@@ -118,12 +83,12 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-linux-${{ matrix.arch }}
+          name: wheels-${{ runner.arch }}
           path: wheelhouse/*
 
   merge-wheel-artifact:
     runs-on: ubuntu-slim
-    needs: ['sdist', 'wheel-macos', 'wheel-linux']
+    needs: ['sdist', 'wheel']
     steps:
       - name: Merge Artifacts
         uses: actions/upload-artifact/merge@v4
