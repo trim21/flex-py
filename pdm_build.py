@@ -29,11 +29,9 @@ def _zig_target_for_arch(arch: str) -> "str | None":
         return "x86-linux-musl"
     if arch in {"s390x"}:
         return "s390x-linux-musl"
-    if arch in {"ppc64le"}:
-        return "ppc64le-linux-musl"
     if arch in {"armv7l", "armv7"}:
         # armv7l wheels on PyPI are typically hard-float.
-        return "arm-linux-musleabihf"
+        return "arm-linux-musleabi"
 
     return None
 
