@@ -47,7 +47,7 @@ jobs:
             skip: '*musllinux*'
           - runner: ubuntu-24.04-arm
             arch: armv7l
-            skip: '*musllinux*'
+            # skip: '*musllinux*'
           - runner: ubuntu-24.04-arm
             arch: aarch64
             skip: '*musllinux*'
