@@ -1,5 +1,5 @@
 [build-system]
-requires = ["pdm-backend", "requests"]
+requires = ["pdm-backend", "requests", "zig-bin"]
 build-backend = "pdm.backend"
 
 [project]
