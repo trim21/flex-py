@@ -39,11 +39,13 @@ def _default_linux_plat_name() -> "str | None":
     if zig_arch is None:
         return None
 
+    template = "manylinux_2_12_{0}.manylinux2010_{0}.musllinux_1_1_{0}"
+
     plats = {
-        "x86_64": "manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64",
-        "aarch64": "manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64",
-        "x86": "manylinux_2_12_i686.manylinux2010_i686.musllinux_1_1_i686",
-        "s390x": "manylinux_2_17_s390x.manylinux2014_s390x",
+        "x86_64": template.format("x86_64"),
+        "aarch64": template.format("aarch64"),
+        "x86": template.format("i686"),
+        "s390x": template.format("s390x"),
     }
 
     try:
