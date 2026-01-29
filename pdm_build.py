@@ -21,17 +21,20 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 machine = platform.machine().lower()
 if machine in {"x86_64", "amd64"}:
-    arch = "x64"
+    zig_arch = "x64"
 elif machine in {"aarch64", "arm64"}:
-    arch = "aarch64"
+    zig_arch = "aarch64"
 elif machine in {"i386", "i486", "i586", "i686", "x86"}:
-    arch = "x86"
+    zig_arch = "x86"
 else:
-    raise Exception("unsupported arch {}".format(machine))
+    zig_arch = None
 
 
 def _default_linux_plat_name() -> "str | None":
     if not sys.platform.startswith("linux"):
+        return None
+
+    if zig_arch is None:
         return None
 
     plats = {
@@ -41,9 +44,9 @@ def _default_linux_plat_name() -> "str | None":
     }
 
     try:
-        return plats[arch]
+        return plats[zig_arch]
     except KeyError:
-        raise RuntimeError(f"No plat-name mapping for {arch}") from None
+        raise RuntimeError(f"No plat-name mapping for {zig_arch}") from None
 
 
 def pdm_build_hook_enabled(context: "Context"):
@@ -91,14 +94,12 @@ def build_flex(tarball_path: Path, output: Path) -> None:
     env = os.environ.copy()
 
     if sys.platform == "linux":
-        if arch == "x64":
-            env["CC"] = "zig cc -target x86_64-linux-musl"
-        elif arch == "aarch64":
-            env["CC"] = "zig cc -target aarch64-linux-musl"
-        elif arch == "x86":
-            env["CC"] = "zig cc -target x86-linux-musl"
-        else:
-            raise Exception(f"unknown arch {platform.machine()}")
+        if zig_arch == "x64":
+            env["CC"] = "python-zig cc -target x86_64-linux-musl"
+        elif zig_arch == "aarch64":
+            env["CC"] = "python-zig cc -target aarch64-linux-musl"
+        elif zig_arch == "x86":
+            env["CC"] = "python-zig cc -target x86-linux-musl"
 
     with TemporaryDirectory(prefix="flex-build-") as temp_dir:
         work_dir = Path(temp_dir)

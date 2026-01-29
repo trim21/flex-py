@@ -26,17 +26,15 @@ jobs:
           name: wheels-sdist
           path: dist/*
 
-  wheel:
-    runs-on: ${{ matrix.platform.runner }}
+  wheel-macos:
+    runs-on: ${{ matrix.runner }}
     needs: [sdist]
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - runner: macos-15
-          - runner: macos-15-intel
-          - runner: ubuntu-24.04
-          - runner: ubuntu-24.04-arm
+        runner:
+          - macos-15
+          - macos-15-intel
     steps:
       - uses: actions/checkout@v4
 
@@ -53,12 +51,11 @@ jobs:
           ls -ahl sdist
 
       - name: Install the latest version of uv
-        if: ${{ runner.os != 'Linux' }}
         uses: astral-sh/setup-uv@v7
 
       - uses: pypa/cibuildwheel@v3.3.1
         env:
-          CIBW_ARCHS: 'native'
+          CIBW_ARCHS_MACOS: native
         with:
           package-dir: sdist
 
@@ -67,12 +64,66 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ runner.os }}-${{ runner.arch }}
+          name: wheels-macos-${{ runner.arch }}
+          path: wheelhouse/*
+
+  wheel-linux:
+    runs-on: ${{ matrix.runner }}
+    needs: [sdist]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+          - runner: ubuntu-24.04
+            arch: i686
+          - runner: ubuntu-24.04
+            arch: armv7l
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+          - runner: ubuntu-24.04
+            arch: s390x
+          - runner: ubuntu-24.04
+            arch: ppc64le
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download sdist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist
+
+      - name: Extract sdist
+        run: |
+          mkdir -p sdist
+          tar -xzf dist/*.tar.gz -C sdist --strip-components=1
+          ls -ahl sdist
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - uses: pypa/cibuildwheel@v3.3.1
+        env:
+          CIBW_ARCHS_LINUX: ${{ matrix.arch }}
+        with:
+          package-dir: sdist
+
+      - run: ls -ahl wheelhouse
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-linux-${{ matrix.arch }}
           path: wheelhouse/*
 
   merge-wheel-artifact:
     runs-on: ubuntu-slim
-    needs: ['sdist', 'wheel']
+    needs: ['sdist', 'wheel-macos', 'wheel-linux']
     steps:
       - name: Merge Artifacts
         uses: actions/upload-artifact/merge@v4
