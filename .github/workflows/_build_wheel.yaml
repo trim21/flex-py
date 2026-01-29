@@ -54,8 +54,10 @@ jobs:
           - runner: ubuntu-24.04
             arch: s390x
             skip: ''
-          - runner: ubuntu-24.04
+          - runner: ubuntu-24.04-arm
             arch: ppc64le
+          - runner: ubuntu-24.04-arm
+            arch: ppc64
             # skip: '*musllinux*'
     steps:
       - uses: actions/checkout@v4
