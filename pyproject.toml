@@ -44,12 +44,12 @@ excludes = [
   "temp.*/**",
   ".venv/**",
   ".ruff_cache/**",
-  "gnu_flex/",
+  "prefix",
   ".gitignore",
 ]
 
 [tool.pdm.build.wheel-data]
-scripts = ["${BUILD_DIR}/gnu_flex/bin/*"]
+scripts = ["${BUILD_DIR}/prefix/bin/flex"]
 
 [tool.cibuildwheel]
 build-frontend = "uv"

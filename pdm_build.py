@@ -8,7 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 import tarfile
-from tempfile import TemporaryDirectory
 from typing import Any
 
 import requests
@@ -25,7 +24,7 @@ PROJECT_ROOT = Path(__file__).parent
 SRC_ROOT = PROJECT_ROOT.joinpath("src")
 VENDORED_TARBALL = SRC_ROOT.joinpath(TARBALL_NAME)
 
-TARGET_PREFIX = "gnu_flex/bin"
+TARGET_PREFIX = "prefix"
 CONFIG_ARGS = [
     "CFLAGS=-D_GNU_SOURCE",
     "--disable-nls",
@@ -119,10 +118,11 @@ def pdm_build_initialize(context: Context) -> None:
 
     output_path = build_dir.joinpath(TARGET_PREFIX)
 
-    build_tar(tarball_path, output_path)
+    build_tar(build_dir, tarball_path, output_path)
 
 
 def build_tar(
+    build_dir: Path,
     tarball_path: Path,
     output: Path,
 ):
@@ -132,26 +132,21 @@ def build_tar(
         if ZIG_TARGET is not None:
             env["CC"] = f"python-zig cc -target {ZIG_TARGET}"
 
-    with TemporaryDirectory(prefix=f"{NAME}-build-") as temp_dir:
-        work_dir = Path(temp_dir)
-        src_root = work_dir / "build"
-        src_root.mkdir(parents=True, exist_ok=True)
+    build_dir = build_dir.joinpath("build")
 
-        _resolve_source(tarball_path, src_root)
-        stage_dir = work_dir / "stage"
-        stage_dir.mkdir(parents=True, exist_ok=True)
+    src_root = _extract(tarball_path, build_dir)
 
-        configure = src_root / "configure"
-        if not configure.exists():
-            raise RuntimeError(f"Missing configure script for {NAME}")
+    configure = src_root / "configure"
+    if not configure.exists():
+        raise RuntimeError(f"Missing configure script for {NAME}")
 
-        _run_cmd(
-            ["bash", "./configure", f"--prefix={output}", *CONFIG_ARGS],
-            cwd=src_root,
-            env=env,
-        )
-        _run_cmd(["make"], cwd=src_root, env=env)
-        _run_cmd(["make", "install"], cwd=src_root, env=env)
+    _run_cmd(
+        ["bash", "./configure", f"--prefix={output}", *CONFIG_ARGS],
+        cwd=src_root,
+        env=env,
+    )
+    _run_cmd(["make"], cwd=src_root, env=env)
+    _run_cmd(["make", "install"], cwd=src_root, env=env)
 
 
 def _run_cmd(cmd: list[str], *, cwd: Path, env: "dict[str, str]") -> None:
@@ -181,10 +176,15 @@ def _ensure_tarball(build_dir: Path) -> Path:
     return destination
 
 
-def _resolve_source(tarball_path: Path, extract_dir: Path):
-    with tarfile.open(tarball_path, "r") as tar:
-        tar.extractall(extract_dir)
+def _extract(archive: Path, target: Path) -> Path:
+    if target.exists():
+        shutil.rmtree(target)
+    target.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(archive, "r:*") as tf:
+        tf.extractall(target)
+        tops = {Path(member.name).parts[0] for member in tf.getmembers() if member.name}
+    roots = [target / name for name in tops if (target / name).exists()]
+    if len(roots) == 1:
+        return roots[0]
 
-    src_dir = extract_dir / f"{NAME}-{VERSION}"
-    if not src_dir.exists():
-        raise RuntimeError(f"flex sources not found at {src_dir}")
+    raise Exception("Multiple root directory in tar: {}".format(roots))
