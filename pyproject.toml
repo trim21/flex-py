@@ -2,7 +2,7 @@
 requires = [
   "pdm-backend",
   "requests",
-  "ziglang>=0.15.1,<1 ; sys_platform == 'linux'",
+  "ziglang==0.15.2; sys_platform == 'linux'",
 ]
 build-backend = "pdm.backend"
 
