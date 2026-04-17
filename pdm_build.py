@@ -12,7 +12,6 @@ from typing import Any
 import requests
 from pdm.backend.hooks import Context
 
-
 FLEX_VERSION = "2.6.4"
 FLEX_TARBALL_URL = f"https://github.com/westes/flex/releases/download/v{FLEX_VERSION}/flex-{FLEX_VERSION}.tar.gz"
 FLEX_TARBALL_NAME = f"flex-{FLEX_VERSION}.tar.gz"
