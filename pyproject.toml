@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-  'pdm-backend>=2.4.8,<3',
+  'pdm-backend==2.4.8',
   "requests",
   "ziglang==0.15.2; sys_platform == 'linux'",
 ]
