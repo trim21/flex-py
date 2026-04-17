@@ -7,10 +7,10 @@ jobs:
   sdist:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -21,7 +21,7 @@ jobs:
         run: python -m build --sdist --outdir dist
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-sdist
           path: dist/*
@@ -47,25 +47,18 @@ jobs:
             skip: '*musllinux*'
           - runner: ubuntu-24.04-arm
             arch: armv7l
-            # skip: '*musllinux*'
           - runner: ubuntu-24.04-arm
             arch: aarch64
             skip: '*musllinux*'
-          # - runner: ubuntu-24.04
-          #   arch: s390x
-          #   skip: '*musllinux*'
-          # - runner: ubuntu-24.04
-          #   arch: ppc64le
-          #   skip: '*musllinux*'
     steps:
       - name: Download sdist artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wheels-sdist
           path: dist
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         if: ${{ runner.os == 'Linux' }}
 
       - name: Extract sdist
@@ -77,10 +70,7 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
 
-      # - run: uv tool install https://github.com/henryiii/cibuildwheel/archive/refs/heads/henryiii/feat/uvbuild.zip
-
-      # - run: cibuildwheel sdist
-      - uses: pypa/cibuildwheel@v3.3.1
+      - uses: pypa/cibuildwheel@v3.4.1
         with:
           package-dir: sdist
         env:
@@ -91,7 +81,7 @@ jobs:
       - run: ls -ahl wheelhouse
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.runner }}-${{ matrix.arch }}
           path: wheelhouse/*
@@ -101,7 +91,7 @@ jobs:
     needs: ['sdist', 'wheel']
     steps:
       - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: wheel
           pattern: wheels-*

@@ -6,8 +6,8 @@ import shlex
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 import tarfile
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -20,10 +20,7 @@ TARBALL_URL = (
 )
 TARBALL_NAME = f"{NAME}-{VERSION}.tar.gz"
 
-PROJECT_ROOT = Path(__file__).parent
-SRC_ROOT = PROJECT_ROOT.joinpath("src")
-VENDORED_TARBALL = SRC_ROOT.joinpath(TARBALL_NAME)
-
+PROJECT_ROOT = Path(__file__).resolve().parent
 TARGET_PREFIX = "prefix"
 CONFIG_ARGS = [
     "CFLAGS=-D_GNU_SOURCE",
@@ -34,8 +31,8 @@ CONFIG_ARGS = [
 
 
 def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
-    print("[bison-bin]: getting targets for {!r}".format(arch), file=sys.stderr)
-    print("[bison-bin]: uname {!r}".format(platform.uname()), file=sys.stderr)
+    print("[flex-bin]: getting targets for {!r}".format(arch), file=sys.stderr)
+    print("[flex-bin]: uname {!r}".format(platform.uname()), file=sys.stderr)
 
     if arch in {"x86_64", "amd64"}:
         return "x86_64-linux-musl", "x86_64"
@@ -84,7 +81,7 @@ def _default_linux_plat_name() -> "list[str] | None":
     return [x.format(PYPI_ARCH) for x in templates]
 
 
-def pdm_build_hook_enabled(context: "Context"):
+def pdm_build_hook_enabled(context: Context):
     return True
 
 
@@ -104,7 +101,7 @@ def pdm_build_initialize(context: Context) -> None:
     if context.target == "sdist":
         return
 
-    config_settings: "dict[str, Any]" = {
+    config_settings: dict[str, Any] = {
         "--python-tag": "py3",
         "--py-limited-api": "none",
         **context.builder.config_settings,
@@ -117,7 +114,6 @@ def pdm_build_initialize(context: Context) -> None:
     context.builder.config_settings = config_settings
 
     output_path = build_dir.joinpath(TARGET_PREFIX)
-
     build_tar(build_dir, tarball_path, output_path)
 
 
@@ -125,15 +121,13 @@ def build_tar(
     build_dir: Path,
     tarball_path: Path,
     output: Path,
-):
+) -> None:
     env = os.environ.copy()
 
-    if sys.platform == "linux":
-        if ZIG_TARGET is not None:
-            env["CC"] = f"python-zig cc -target {ZIG_TARGET}"
+    if sys.platform == "linux" and ZIG_TARGET is not None:
+        env["CC"] = f"python-zig cc -target {ZIG_TARGET}"
 
     build_dir = build_dir.joinpath("build")
-
     src_root = _extract(tarball_path, build_dir)
 
     configure = src_root / "configure"
@@ -149,7 +143,7 @@ def build_tar(
     _run_cmd(["make", "install"], cwd=src_root, env=env)
 
 
-def _run_cmd(cmd: list[str], *, cwd: Path, env: "dict[str, str]") -> None:
+def _run_cmd(cmd: list[str], *, cwd: Path, env: dict[str, str]) -> None:
     print("run: ", shlex.join(cmd))
     subprocess.check_call(cmd, cwd=cwd, env=env)
 
