@@ -80,7 +80,7 @@ jobs:
         if: ${{ runner.os != 'Linux' }}
         uses: astral-sh/setup-uv@v7
 
-      - uses: pypa/cibuildwheel@v3.3.1
+      - uses: pypa/cibuildwheel@v3.4.1
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_ARCHS_MACOS: native
