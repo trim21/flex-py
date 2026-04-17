@@ -23,11 +23,23 @@ TARBALL_NAME = f"{NAME}-{VERSION}.tar.gz"
 PROJECT_ROOT = Path(__file__).resolve().parent
 TARGET_PREFIX = "prefix"
 CONFIG_ARGS = [
-    "CFLAGS=-D_GNU_SOURCE",
+    # `-Wno-implicit-function-declaration` keeps clang>=16 (shipped with zig
+    # 0.16+) from upgrading the C99 implicit-declaration warning to an error
+    # when building cross-compiled code.
+    "CFLAGS=-D_GNU_SOURCE -Wno-implicit-function-declaration",
     "--disable-nls",
     "--disable-shared",
     "--enable-static",
 ]
+
+# When cross-compiling, autoconf cannot run the AC_FUNC_MALLOC / AC_FUNC_REALLOC
+# tests and assumes the target's malloc/realloc are broken. It then `#define`s
+# them to `rpl_malloc` / `rpl_realloc`, which flex does not provide, leading to
+# link/compile failures. Pre-populate the cache so the tests are skipped.
+CONFIG_CACHE_ENV = {
+    "ac_cv_func_malloc_0_nonnull": "yes",
+    "ac_cv_func_realloc_0_nonnull": "yes",
+}
 
 
 def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
@@ -126,6 +138,7 @@ def build_tar(
 
     if sys.platform == "linux" and ZIG_TARGET is not None:
         env["CC"] = f"python-zig cc -target {ZIG_TARGET}"
+        env.update(CONFIG_CACHE_ENV)
 
     build_dir = build_dir.joinpath("build")
     src_root = _extract(tarball_path, build_dir)
