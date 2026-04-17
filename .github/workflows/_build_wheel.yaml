@@ -41,25 +41,16 @@ jobs:
             skip: ''
           - runner: ubuntu-24.04
             arch: x86_64
-            skip: ''
+            skip: '*musllinux*'
           - runner: ubuntu-24.04
             arch: i686
-            skip: ''
+            skip: '*musllinux*'
           - runner: ubuntu-24.04-arm
             arch: armv7l
-            skip: ''
           - runner: ubuntu-24.04-arm
             arch: aarch64
-            skip: ''
-          - runner: ubuntu-24.04
-            arch: s390x
-            skip: '*-musllinux*'
-          - runner: ubuntu-24.04
-            arch: ppc64le
-            skip: '*-musllinux*'
+            skip: '*musllinux*'
     steps:
-      - uses: actions/checkout@v6
-
       - name: Download sdist artifact
         uses: actions/download-artifact@v8
         with:
@@ -77,16 +68,15 @@ jobs:
           ls -ahl sdist
 
       - name: Install the latest version of uv
-        if: ${{ runner.os != 'Linux' }}
         uses: astral-sh/setup-uv@v7
 
       - uses: pypa/cibuildwheel@v3.4.1
+        with:
+          package-dir: sdist
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_ARCHS_MACOS: native
           CIBW_SKIP: ${{ matrix.skip }}
-        with:
-          package-dir: sdist
 
       - run: ls -ahl wheelhouse
 
