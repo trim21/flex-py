@@ -56,3 +56,6 @@ test-command = "flex --version"
 
 [tool.cibuildwheel.macos]
 environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
+
+[tool.ruff.lint]
+ignore = ["TRY002"]
