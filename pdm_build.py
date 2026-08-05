@@ -42,9 +42,9 @@ CONFIG_CACHE_ENV = {
 }
 
 
-def _zig_target_for_arch(arch: str) -> "tuple[str, str] | tuple[None, None]":
-    print("[flex-bin]: getting targets for {!r}".format(arch), file=sys.stderr)
-    print("[flex-bin]: uname {!r}".format(platform.uname()), file=sys.stderr)
+def _zig_target_for_arch(arch: str) -> tuple[str, str] | tuple[None, None]:
+    print(f"[flex-bin]: getting targets for {arch!r}", file=sys.stderr)
+    print(f"[flex-bin]: uname {platform.uname()!r}", file=sys.stderr)
 
     if arch in {"x86_64", "amd64"}:
         return "x86_64-linux-musl", "x86_64"
@@ -70,7 +70,7 @@ ZIG_TARGET, PYPI_ARCH = _zig_target_for_arch(
 )
 
 
-def _default_linux_plat_name() -> "list[str] | None":
+def _default_linux_plat_name() -> list[str] | None:
     if not sys.platform.startswith("linux"):
         return None
 
@@ -194,4 +194,4 @@ def _extract(archive: Path, target: Path) -> Path:
     if len(roots) == 1:
         return roots[0]
 
-    raise Exception("Multiple root directory in tar: {}".format(roots))
+    raise Exception(f"Multiple root directory in tar: {roots}")
