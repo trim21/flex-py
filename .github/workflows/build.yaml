@@ -53,3 +53,9 @@ jobs:
 
       - run: flex --help
       - run: which flex
+
+  build-checks: # referenced in Mergify conditions, name must be unique across all workflows
+    needs: [wheels, twine-check, bin-check]
+    runs-on: ubuntu-slim
+    steps:
+      - run: echo "all build checks passed"
