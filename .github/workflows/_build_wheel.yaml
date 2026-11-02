@@ -68,9 +68,9 @@ jobs:
           ls -ahl sdist
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v10.3.3
 
-      - uses: pypa/cibuildwheel@v4.2.1
+      - uses: pypa/cibuildwheel@v4.3.5
         with:
           package-dir: sdist
         env:
